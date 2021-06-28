@@ -1,13 +1,6 @@
 import cv2
 import numpy as np
 
-img = cv2.imread("white-empty-paper-sheet-with-curl_1284-43065.jpg")
-
-height, width, _ = img.shape
-
-print(width,height)
-
-
 def preprocess(img):
     imgGray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
     imgBlur = cv2.GaussianBlur(imgGray, (5,5), 1)
@@ -17,27 +10,22 @@ def preprocess(img):
     imgThresh = cv2.erode(imgDial,kernel,iterations=1)
     return imgThresh
 
-imgThresh = preprocess(img)
-
-
 
 
 def contour(img):
     biggest_cnt = np.array([])
-    max_area = 0  
+    max_area = 0
+    imgThresh = preprocess(img)  
     contours,hierarchy = cv2.findContours(imgThresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     for contour in contours:
         area = cv2.contourArea(contour)
-        if area > 1000:
+        if area > 500:
             perimeter = cv2.arcLength(contour, True)
             approx = cv2.approxPolyDP(contour, 0.1*perimeter, True)
             if area>max_area and len(approx) == 4:
                 biggest_cnt = approx
                 max_area = area
-    cv2.drawContours(imgBig_cnt, biggest_cnt, -1, (255,255,0),10)
     return biggest_cnt
-
-imgBig_cnt = img.copy()
 
 def reorder(mypoints):
 
@@ -55,17 +43,14 @@ def reorder(mypoints):
 
 
 
-def warp(img,biggest_cnt):
-    if biggest_cnt.size != 0:
-        biggest_cnt = reorder(biggest_cnt)
-        pts1 = np.float32(biggest_cnt)
-        pts2 = np.float32([[0,0], [width,0], [0,height], [width,height]])
-        matrix = cv2.getPerspectiveTransform(pts1, pts2)
-        output = cv2.warpPerspective(img, matrix, (width,height))
-    return output
+def warp(biggest_cnt,img):
+        img = cv2.rotate(img, cv2.ROTATE_180)
 
-biggest_cnt = contour(imgThresh)
-output = warp(img, biggest_cnt)
+        if biggest_cnt.size != 0:
+            biggest_cnt = reorder(biggest_cnt)
+            pts1 = np.float32(biggest_cnt)
+            pts2 = np.float32([[0,0], [640,0], [0,480], [640,480]])
+            matrix = cv2.getPerspectiveTransform(pts1, pts2)
+            output = cv2.warpPerspective(img, matrix, (640,480))
+            return output
 
-cv2.imshow("MWIN",output)
-cv2.waitKey(0)
